@@ -18,11 +18,11 @@ docker build -t react-chess -f Dockerfile .
 # Run
 ## Dev Image
 ```
-docker run -p 5173:5173 react-chess-dev
+docker compose up dev --watch
 ```
 
 ## Production Image
 I haven't actually messed w/ this one yet, just using from [here](https://www.docker.com/blog/how-to-dockerize-react-app/)
 ```
-docker run -p 30000:30000 react-chess
+docker compose up prod
 ```
