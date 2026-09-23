@@ -98,7 +98,7 @@ export default class ChessGame {
             let targetRank = rank + rankDir;
             let targetFile = file + fileDir;
 
-            while (targetRank > 0 && targetFile > 0 && targetRank < NUM_RANKS && targetFile < NUM_FILES) {
+            while (targetRank >= 0 && targetFile >= 0 && targetRank < NUM_RANKS && targetFile < NUM_FILES) {
                 if (this.#board.grid[targetRank][targetFile] === null) {
                     // Allow move if target square is empty
                     allowedMoves[targetRank][targetFile] = true;
