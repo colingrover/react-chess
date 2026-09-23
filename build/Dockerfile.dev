@@ -9,7 +9,7 @@ FROM node:${NODE_VERSION} AS dev
 WORKDIR /app
  
 # Copy package files
-COPY package*.json ./
+COPY build/package*.json ./
  
 # Install dependencies
 RUN npm ci
