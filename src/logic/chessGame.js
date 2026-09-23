@@ -1,4 +1,4 @@
-import Board from "./board";
+import Board from "./board.js";
 import {Piece, ROOK_DIRECTIONS, BISHOP_DIRECTIONS, QUEEN_DIRECTIONS, KNIGHT_OFFSETS, KING_OFFSETS} from "./piece.js";
 import { NUM_FILES, NUM_RANKS } from "../constants.js";
 
@@ -40,20 +40,21 @@ export default class ChessGame {
      * 
      * @returns boolean array (same dimensions as board), with allowed moves as true 
      * and disallowed moves as false. Doesn't include checks for if move would endanger
-     * the king, so move not necessarily legal
+     * the king, so move not necessarily legal. If square without piece selected, 
+     * returns null.
      */
     getBasicMoves(rank, file) {
         if (rank < 0 || rank >= NUM_RANKS || file < 0 || file >= NUM_FILES) {
             throw new Error(`Rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
         }
 
-        // Initialize array of all possible moves to entirely false grid
-        const ret = Array(NUM_RANKS).fill(false).map(() => Array(NUM_FILES).fill(false));
-
         // If no piece on target square, then there are no associated moves
         if (this.#board.grid[rank][file] === null) {
-            return ret;
+            return null;
         }
+
+        // Initialize array of all possible moves to entirely false grid
+        const ret = Array(NUM_RANKS).fill(false).map(() => Array(NUM_FILES).fill(false));
 
         switch(this.#board.grid[rank][file].type) {
             case Piece.Type.ROOK:
@@ -127,8 +128,11 @@ export default class ChessGame {
         for (const [rankOff, fileOff] of offsets) {
             const targetRank = rank + rankOff;
             const targetFile = file + fileOff;
-
-            if (this.#board.grid[targetRank][targetFile] === null) {
+            
+            if (targetRank < 0 || targetRank >= NUM_RANKS || targetFile < 0 || targetFile >= NUM_FILES) {
+                // Skip out-of-bounds options
+                continue;
+            } else if (this.#board.grid[targetRank][targetFile] === null) {
                 // Allow move if target square is empty
                 allowedMoves[targetRank][targetFile] = true;
             } else if (this.#board.grid[targetRank][targetFile].colour === this.#board.grid[rank][file].colour) {
@@ -152,8 +156,8 @@ export default class ChessGame {
 
                 // Allow next square up if it's empty and pawn hasn't yet moved (also check valid rank juuuuust in case)
                 if (!this.#board.grid[rank][file].hasMoved && rank + (2*direction) > 0 
-                                                    && rank + (2*direction) < NUM_RANKS 
-                                                    && this.#board.grid[rank + (2*direction)][file] !== null) {
+                                                           && rank + (2*direction) < NUM_RANKS 
+                                                           && this.#board.grid[rank + (2*direction)][file] === null) {
                     allowedMoves[rank + (2*direction)][file] = true;
                 }
             }
@@ -166,5 +170,10 @@ export default class ChessGame {
                 allowedMoves[rank+direction][file-1] = true;
             }
         }
+    }
+
+    attemptMove(oldRank, oldFile, newRank, newFile) {
+        // TODO: Logic for if the move should actually be allowed
+        this.#board.move(oldRank, oldFile, newRank, newFile);
     }
 }

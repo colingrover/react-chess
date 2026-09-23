@@ -1,15 +1,28 @@
 import { useState } from 'react'
 import Board from './components/Board.jsx';
-import ChessGame from './logic/chess.js';
+import {useChessGame} from './hooks/useChessGame.js';
 
 export default function App() {
-    const [game, setGame] = useState(new ChessGame());
+    const {
+        boardSnapshot,
+        selectedSquare,
+        moveOptions,
+        handlePointerDown,
+        handlePointerUp,
+        attemptMove,
+    } = useChessGame();
 
     return (
         <>
             <h1>Hello, world!</h1>
             <p>Not much to see yet :/</p>
-            <Board board={game.getBoardSnapshot()}/>
+            <Board 
+                board={boardSnapshot}
+                selectedSquare={selectedSquare}
+                highlighted={moveOptions}
+                handlePointerDown={handlePointerDown}
+                handlePointerUp={handlePointerUp}
+            />
         </>
     )
 }

@@ -1,0 +1,101 @@
+.tile {
+    --dark-colour: #b58863;
+    --light-colour: #f0d9b5;
+    --select-colour: #2222ff;
+
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.dark {
+    background-color: var(--dark-colour);
+}
+
+.light {
+    background-color: var(--light-colour);
+}
+
+.dark.highlighted {
+    background-color: color-mix(in srgb, var(--dark-colour) 70%, green 30%);
+}
+
+.light.highlighted {
+    background-color: color-mix(in srgb, var(--light-colour) 70%, green 30%);
+}
+
+/* .selected {
+    background-color: var(--select-colour)
+} */
+
+.dark.selected {
+    background-color: color-mix(in srgb, var(--dark-colour) 50%, var(--select-colour) 50%);
+}
+
+.light.selected {
+    background-color: color-mix(in srgb, var(--light-colour) 50%, var(--select-colour) 50%);
+}
+
+.piece {
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.piece:hover {
+    cursor: pointer;
+}
+
+/* PIECES */
+.rook-white {
+    background-image: url("../assets/piece_w_rook.png");
+}
+
+.rook-black {
+    background-image: url("../assets/piece_b_rook.png");
+}
+
+.knight-white {
+    background-image: url("../assets/piece_w_knight.png");
+}
+
+.knight-black {
+    background-image: url("../assets/piece_b_knight.png");
+}
+
+.bishop-white {
+    background-image: url("../assets/piece_w_bishop.png");
+}
+
+.bishop-black {
+    background-image: url("../assets/piece_b_bishop.png");
+}
+
+.queen-white {
+    background-image: url("../assets/piece_w_queen.png");
+}
+
+.queen-black {
+    background-image: url("../assets/piece_b_queen.png");
+}
+
+.king-white {
+    background-image: url("../assets/piece_w_king.png");
+}
+
+.king-black {
+    background-image: url("../assets/piece_b_king.png");
+}
+
+.pawn-white {
+    background-image: url("../assets/piece_w_pawn.png");
+}
+
+.pawn-black {
+    background-image: url("../assets/piece_b_pawn.png");
+}

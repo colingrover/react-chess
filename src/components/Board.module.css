@@ -1,0 +1,15 @@
+:root {
+    --boardHeight: 25rem;
+    --boardWidth: 25rem;
+    --numRanks: 8;
+    --numFiles: 8;
+}
+
+.chessboard {
+    height: var(--boardHeight);
+    width: var(--boardWidth);
+    overflow: visible;
+    display: grid;
+    grid-template-rows: repeat(var(--numRanks), 1fr);
+    grid-template-columns: repeat(var(--numFiles), 1fr);
+}
