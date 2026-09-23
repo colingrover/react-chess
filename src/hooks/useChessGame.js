@@ -21,37 +21,91 @@ export function useChessGame() {
         setBoardSnapshot(gameRef.current.getBoardSnapshot());
     }, []);
 
-    // Update moveOptions to highlight available moves based on selected piece
-    const getMoveOptions = useCallback((rank, file) => {
-        setMoveOptions(gameRef.current.getBasicMoves(rank, file));
-    }, []);
-
-    const handlePointerDown = useCallback((rank, file) => {
-        if (boardSnapshot[rank][file] !== null) {
-            setSelectedSquare({ rank, file });
-            const piece = boardSnapshot[rank][file];
-            getMoveOptions(rank, file);
-        }
-    }, []);
-
-    const handlePointerUp = useCallback((rank, file) => {
-
-    }, []);
-
-    // Dispatch move action to the class engine
+    // Helper to try and make a move
     const attemptMove = useCallback((fromRank, fromFile, toRank, toFile) => {
         gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
-        setSelectedSquare(null);
-        setValidMoves(null);
-        updateUI();
+        setSelectedSquare(null); // Deselect square we moved from
+        setMoveOptions(null); // Stop displaying move options after game state has changed
+        updateUI(); // Update UI to reflect the new board state after the move
     }, [updateUI]);
+
+    // For when user is moving a piece
+    const [draggedPiece, setDraggedPiece] = useState(null);
+    const [dragPosition, setDragPosition] = useState(null);
+
+    // Used for when user clicks on a square (ideally with a piece on it)
+    const handlePointerDown = useCallback((rank, file, event) => {
+        const piece = boardSnapshot[rank][file];
+
+        if (piece === null) {
+            return;
+        }
+        
+        // Update selected square to that of current piece so it can be highlighted
+        setSelectedSquare({ rank, file });
+
+        // Update moveOptions to highlight available moves based on selected piece
+        setMoveOptions(gameRef.current.getBasicMoves(rank, file));
+
+        // Update draggedPiece to track piece and where it is being dragged from
+        setDraggedPiece({
+            piece,
+            from: { rank, file },
+        });
+
+        // Start dragPosition at where the click occurred
+        setDragPosition({
+            x: event.clientX,
+            y: event.clientY,
+        });
+    }, [boardSnapshot]);
+
+    // Track piece being moved to the mouse
+    const handlePointerMove = useCallback((event) => {
+        if (draggedPiece === null) {
+            return;
+        }
+
+        setDragPosition({
+            x: event.clientX,
+            y: event.clientY,
+        });
+    }, [draggedPiece]);
+
+    // Used for when the user releases the mouse button over a square
+    const handlePointerUp = useCallback((rank, file) => {
+        // Ignore if we aren't dragging anything
+        if (draggedPiece === null) {
+            return;
+        }
+        
+        // Only allow pseudo-legal moves to even be attempted
+        const isMoveOption = moveOptions?.[rank]?.[file] === true;
+
+        if (isMoveOption) {
+            // TODO: React somehow to when moves are refused that indicates why to the player
+            // (e.g., not your turn, move would put you in check, etc.)
+            attemptMove(
+                draggedPiece.from.rank,
+                draggedPiece.from.file,
+                rank,
+                file,
+            );
+        }
+
+        // Release piece
+        setDraggedPiece(null);
+        setDragPosition(null);
+    }, [draggedPiece, moveOptions, updateUI]);
 
     return {
         boardSnapshot,
         selectedSquare,
         moveOptions,
+        draggedPiece,
+        dragPosition,
         handlePointerDown,
+        handlePointerMove,
         handlePointerUp,
-        attemptMove,
     };
 }

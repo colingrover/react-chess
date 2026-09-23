@@ -7,9 +7,11 @@ export default function App() {
         boardSnapshot,
         selectedSquare,
         moveOptions,
+        draggedPiece,
+        dragPosition,
         handlePointerDown,
+        handlePointerMove,
         handlePointerUp,
-        attemptMove,
     } = useChessGame();
 
     return (
@@ -20,7 +22,10 @@ export default function App() {
                 board={boardSnapshot}
                 selectedSquare={selectedSquare}
                 highlighted={moveOptions}
+                draggedPiece={draggedPiece}
+                dragPosition={dragPosition}
                 handlePointerDown={handlePointerDown}
+                handlePointerMove={handlePointerMove}
                 handlePointerUp={handlePointerUp}
             />
         </>

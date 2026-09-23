@@ -1,9 +1,16 @@
 import styles from './Tile.module.css';
 
-export default function Tile({ rank, file, piece, selected, highlighted, handlePointerDown, handlePointerUp }) {
+export default function Tile({rank,
+                              file, 
+                              piece, 
+                              selected, 
+                              highlighted, 
+                              handlePointerDown,
+                              handlePointerMove, 
+                              handlePointerUp }) {
     const pointerDownCaller = (e) => {
         e.preventDefault();
-        handlePointerDown(rank, file);
+        handlePointerDown(rank, file, e);
     };
 
     const pointerUpCaller = (e) => {
@@ -22,6 +29,7 @@ export default function Tile({ rank, file, piece, selected, highlighted, handleP
                         ${selected === true ? styles.selected : null}
                         ${highlighted === true ? styles.highlighted : null}`}
             onPointerDown={pointerDownCaller}
+            onPointerMove={handlePointerMove}
             onPointerUp={pointerUpCaller}
         >
         </div>

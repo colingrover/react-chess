@@ -13,3 +13,12 @@
     grid-template-rows: repeat(var(--numRanks), 1fr);
     grid-template-columns: repeat(var(--numFiles), 1fr);
 }
+
+.draggedPiece {
+    position: fixed;
+    z-index: 10;
+    width: calc(var(--boardWidth) / var(--numFiles));
+    height: calc(var(--boardHeight) / var(--numRanks));
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
