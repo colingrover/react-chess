@@ -61,6 +61,13 @@ export function useChessGame() {
 
     // Used for when user clicks on a square (ideally with a piece on it)
     const handlePointerDown = useCallback((rank, file, event) => {
+        // If the player has already selected a piece, and is now clicking on one of its
+        // allowed moves, then we don't have to bother with this stuff as it would be
+        // unnecessary/redundant 
+        if (selectedSquare !== null && moveOptions?.[rank]?.[file] === true) {
+            return;
+        }
+
         const piece = boardSnapshot[rank][file];
 
         if (piece === null) {
@@ -84,7 +91,7 @@ export function useChessGame() {
             x: event.clientX,
             y: event.clientY,
         });
-    }, [boardSnapshot]);
+    }, [boardSnapshot, moveOptions, selectedSquare]);
 
     // Track piece being moved to the mouse
     const handlePointerMove = useCallback((event) => {
@@ -100,11 +107,9 @@ export function useChessGame() {
 
     // Used for when the user releases the mouse button over a square
     const handlePointerUp = useCallback((rank, file) => {
-        // Ignore if we aren't dragging anything
-        if (draggedPiece === null) {
-            return;
-        }
-        
+        // Ignore if we haven't actually selected a piece to move
+        if (selectedSquare === null) {return;}
+
         // Only allow pseudo-legal moves to even be attempted
         const isMoveOption = moveOptions?.[rank]?.[file] === true;
 
@@ -112,8 +117,8 @@ export function useChessGame() {
             // TODO: React somehow to when moves are refused that indicates why to the player
             // (e.g., not your turn, move would put you in check, etc.)
             attemptMove(
-                draggedPiece.from.rank,
-                draggedPiece.from.file,
+                selectedSquare.rank,
+                selectedSquare.file,
                 rank,
                 file,
             );
@@ -122,7 +127,7 @@ export function useChessGame() {
         // Release piece
         setDraggedPiece(null);
         setDragPosition(null);
-    }, [draggedPiece, moveOptions, updateUI]);
+    }, [attemptMove, moveOptions, selectedSquare]);
 
     const getTurn = useCallback(() => gameRef.current.getTurn(), []);
 
