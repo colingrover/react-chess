@@ -1,5 +1,4 @@
 import Tile from './Tile.jsx';
-import { NUM_FILES, NUM_RANKS } from '../constants.js';
 import styles from './Board.module.css';
 import tileStyles from './Tile.module.css';
 

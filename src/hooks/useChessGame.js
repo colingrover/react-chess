@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import ChessGame from '../logic/chessGame.js';
+import MoveDisallowedError from '../logic/moveDisallowedError.js';
 
 export function useChessGame() {
     // 1. Maintain a persistent instance across renders using useRef
@@ -23,7 +24,32 @@ export function useChessGame() {
 
     // Helper to try and make a move
     const attemptMove = useCallback((fromRank, fromFile, toRank, toFile) => {
-        gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
+
+        try {
+            gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
+        } catch (error) {
+            if (error instanceof MoveDisallowedError) {
+                switch (error.code) {
+                    case MoveDisallowedError.SELF_CHECK:
+                        // TODO:
+                        console.warn(error.message)
+                        break;
+                    case MoveDisallowedError.OUT_OF_TURN:
+                        // TODO:
+                        console.warn(error.message)
+                        break;
+                    case MoveDisallowedError.GENERIC:
+                    default:
+                        // TODO:
+                        console.error(error.message)
+                        break;
+                }
+            } else {
+                // Fully unexpected error :(
+                throw error;
+            }
+        }
+
         setSelectedSquare(null); // Deselect square we moved from
         setMoveOptions(null); // Stop displaying move options after game state has changed
         updateUI(); // Update UI to reflect the new board state after the move

@@ -2,6 +2,16 @@ import { NUM_FILES, NUM_RANKS } from "../constants.js";
 import {Piece} from "./piece.js";
 
 export default class Board {
+    /**
+     * E.g., `getSquareNotationName(0, 2)` → "c1"
+     * @param {number} rank 
+     * @param {number} file 
+     * @returns {string} Algebraic notation representation of requested square
+     */
+    static getSquareNotationName(rank, file) {
+        return `${String.fromCharCode("a".charCodeAt(0) + file)}${rank + 1}`
+    }
+
     constructor() {
         this.grid = Array.from({ length: NUM_RANKS }, () => Array(NUM_FILES).fill(null));
         this.#init();
@@ -76,6 +86,7 @@ export default class Board {
         this.grid[newRank][newFile] = this.grid[oldRank][oldFile];
         this.grid[newRank][newFile].hasMoved = true;
         this.grid[oldRank][oldFile] = null;
+        // console.log(`${this.grid[newRank][newFile].colour} ${this.grid[newRank][newFile].type} from ${Board.getSquareNotationName(oldRank, oldFile)} to ${Board.getSquareNotationName(newRank, newFile)}`)
     }
 
 
