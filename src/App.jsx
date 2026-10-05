@@ -19,7 +19,7 @@ export default function App() {
 
     return (
         <>
-            <h1>Hello, world!</h1>
+            <h1>Work in Progress Still...</h1>
             <p>{turn[0].toUpperCase() + turn.slice(1)}'s turn</p>
             <Board 
                 board={boardSnapshot}
