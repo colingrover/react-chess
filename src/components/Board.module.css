@@ -1,6 +1,6 @@
 :root {
-    --boardHeight: 25rem;
-    --boardWidth: 25rem;
+    --boardHeight: 35rem;
+    --boardWidth: 35rem;
     --numRanks: 8;
     --numFiles: 8;
 }
