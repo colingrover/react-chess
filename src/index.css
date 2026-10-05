@@ -1,3 +1,8 @@
 * {
     box-sizing: border-box;
 }
+
+.main-container {
+    display: grid;
+    place-items: center; /* Centers everything horizontally and vertically */
+}

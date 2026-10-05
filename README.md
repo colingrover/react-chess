@@ -14,3 +14,9 @@ docker compose build dev
 ```
 docker compose up dev --watch
 ```
+
+## Major TODOs
+- Promotion
+- Castling
+- En-passant
+- Checkmate

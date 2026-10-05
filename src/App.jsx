@@ -18,7 +18,7 @@ export default function App() {
     const turn = getTurn()
 
     return (
-        <>
+        <div className="main-container">
             <h1>Work in Progress Still...</h1>
             <p>{turn[0].toUpperCase() + turn.slice(1)}'s turn</p>
             <Board 
@@ -31,6 +31,6 @@ export default function App() {
                 handlePointerMove={handlePointerMove}
                 handlePointerUp={handlePointerUp}
             />
-        </>
+        </div>
     )
 }

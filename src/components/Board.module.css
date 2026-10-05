@@ -1,24 +1,24 @@
 :root {
-    --boardHeight: 35rem;
-    --boardWidth: 35rem;
+    --boardWidth: min(92vw, 35rem);
     --numRanks: 8;
     --numFiles: 8;
 }
 
 .chessboard {
-    height: var(--boardHeight);
     width: var(--boardWidth);
+    aspect-ratio: 1;
     overflow: visible;
     display: grid;
     grid-template-rows: repeat(var(--numRanks), 1fr);
     grid-template-columns: repeat(var(--numFiles), 1fr);
+    touch-action: none;
 }
 
 .draggedPiece {
     position: fixed;
     z-index: 10;
     width: calc(var(--boardWidth) / var(--numFiles));
-    height: calc(var(--boardHeight) / var(--numRanks));
+    height: calc(var(--boardWidth) / var(--numRanks));
     transform: translate(-50%, -50%);
     pointer-events: none;
 }
