@@ -98,6 +98,8 @@ export function useChessGame() {
         setDragPosition(null);
     }, [draggedPiece, moveOptions, updateUI]);
 
+    const getTurn = useCallback(() => gameRef.current.getTurn(), []);
+
     return {
         boardSnapshot,
         selectedSquare,
@@ -107,5 +109,6 @@ export function useChessGame() {
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
+        getTurn
     };
 }

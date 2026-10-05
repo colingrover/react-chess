@@ -84,6 +84,33 @@ export default class ChessGame {
         return ret;
     }
 
+    attemptMove(oldRank, oldFile, newRank, newFile) {
+        // TODO: Logic for if the move should actually be allowed
+        if (oldRank < 0 || oldRank >= NUM_RANKS || oldFile < 0 || oldFile >= NUM_FILES) {
+            throw new Error(`Old rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
+        }
+
+        if (newRank < 0 || newRank >= NUM_RANKS || newFile < 0 || newFile >= NUM_FILES) {
+            throw new Error(`New rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
+        }
+
+        if (this.#board.grid[oldRank][oldFile] === null) {
+            throw new Error(`Attempted to move piece from empty square at rank ${oldRank} and file ${oldFile}.`);
+        }
+
+        // Don't allow move if not that player's turn
+        if (this.#board.grid[oldRank][oldFile].colour !== this.#turn) {
+            return;
+        }
+
+        this.#board.move(oldRank, oldFile, newRank, newFile);
+        this.#changeTurn();
+    }
+
+    getTurn() {
+        return this.#turn
+    }
+
     /**
      * @brief Helper for getBasicMoves that handles pieces that slide
      * 
@@ -180,28 +207,5 @@ export default class ChessGame {
         } else {
             this.#turn = Piece.Colour.WHITE;
         }
-    }
-
-    attemptMove(oldRank, oldFile, newRank, newFile) {
-        // TODO: Logic for if the move should actually be allowed
-        if (oldRank < 0 || oldRank >= NUM_RANKS || oldFile < 0 || oldFile >= NUM_FILES) {
-            throw new Error(`Old rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
-        }
-
-        if (newRank < 0 || newRank >= NUM_RANKS || newFile < 0 || newFile >= NUM_FILES) {
-            throw new Error(`New rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
-        }
-
-        if (this.#board.grid[oldRank][oldFile] === null) {
-            throw new Error(`Attempted to move piece from empty square at rank ${oldRank} and file ${oldFile}.`);
-        }
-
-        // Don't allow move if not that player's turn
-        if (this.#board.grid[oldRank][oldFile].colour !== this.#turn) {
-            return;
-        }
-
-        this.#board.move(oldRank, oldFile, newRank, newFile);
-        this.#changeTurn();
     }
 }

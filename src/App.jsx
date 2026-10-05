@@ -12,12 +12,15 @@ export default function App() {
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
+        getTurn
     } = useChessGame();
+
+    const turn = getTurn()
 
     return (
         <>
             <h1>Hello, world!</h1>
-            <p>Not much to see yet :/</p>
+            <p>{turn[0].toUpperCase() + turn.slice(1)}'s turn</p>
             <Board 
                 board={boardSnapshot}
                 selectedSquare={selectedSquare}
