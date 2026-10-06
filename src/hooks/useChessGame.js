@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import ChessGame from '../logic/chessGame.js';
 import MoveDisallowedError from '../logic/moveDisallowedError.js';
 import Board from '../logic/board.js';
+import { Piece } from '../logic/piece.js';
 
 async function postChessApi(data = {}) {
     const response = await fetch('https://chess-api.com/v1', {
@@ -40,32 +41,80 @@ export function useChessGame() {
     const [selectedSquare, setSelectedSquare] = useState(null); // { rank, file }
     const [moveOptions, setMoveOptions] = useState(null); // 8x8 boolean grid
     const [suggestedMove, setSuggestedMove] = useState(null);
-    const [winChance, setWinChance] = useState(50.0);
+    const [winChance, setWinChance] = useState(53.0);
     const [showHint, setShowHint] = useState(false);
+    const [autoplayBlack, setAutoplayBlack] = useState(false);
+    // const [engineDepth, setEngineDepth] = useState(12);
+    const autoplayBlackRef = useRef(autoplayBlack);
+    autoplayBlackRef.current = autoplayBlack;
 
     // Helper to trigger a React render whenever the underlying engine state changes
     const updateUI = useCallback(() => {
         setBoardSnapshot(gameRef.current.getBoardSnapshot());
     }, []);
 
+    const getTurn = useCallback(() => gameRef.current.getTurn(), []);
+
+    const applyMove = useCallback((fromRank, fromFile, toRank, toFile) => {
+        let moveWasApplied = false;
+
+        try {
+            gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
+            moveWasApplied = true;
+            setShowHint(false);
+        } catch (error) {
+            if (error instanceof MoveDisallowedError) {
+                switch (error.code) {
+                    case MoveDisallowedError.SELF_CHECK:
+                    case MoveDisallowedError.OUT_OF_TURN:
+                        console.warn(error.message);
+                        break;
+                    case MoveDisallowedError.GENERIC:
+                    default:
+                        console.error(error.message);
+                        break;
+                }
+            } else {
+                throw error;
+            }
+        }
+
+        setSelectedSquare(null);
+        setMoveOptions(null);
+        updateUI();
+        return moveWasApplied;
+    }, [updateUI]);
+
     // Prompt the chess engine for a hint & evaluate win %
-    const promptEngine = useCallback(async () => {
+    const promptEngine = useCallback(async function promptEngine() {
         setSuggestedMove(null);
 
         try {
-            const result = await postChessApi({ fen: gameRef.current.getFEN() });
+            const result = await postChessApi({
+                fen: gameRef.current.getFEN(),
+                // depth: Math.min(18, Math.max(engineDepth, 1))
+            });
 
             if (!result || typeof result !== 'object') {
                 throw new Error('Chess API returned an invalid response.');
             }
 
+            const from = Board.getRankAndFileFromNotationName(result.from);
+            const to = Board.getRankAndFileFromNotationName(result.to);
+
             setSuggestedMove({
-                from: Board.getRankAndFileFromNotationName(result.from),
-                to: Board.getRankAndFileFromNotationName(result.to),
+                from,
+                to,
                 san: (typeof result.san === 'string' ? result.san : null),
             });
 
             setWinChance(result.winChance);
+
+            if (autoplayBlackRef.current && getTurn() === Piece.Colour.BLACK) {
+                if (applyMove(from.rank, from.file, to.rank, to.file)) {
+                    await promptEngine();
+                }
+            }
         } catch (error) {
             if (error instanceof Error) {
                 console.error(error.message);
@@ -73,47 +122,27 @@ export function useChessGame() {
                 String(error);
             }
         }
-    }, []);
+    }, [applyMove, /* engineDepth, */ getTurn]);
 
     const requestHint = useCallback(() => {
         setShowHint(true);
-    }, [])
+        promptEngine();
+    }, [promptEngine]);
 
     // Helper to try and make a move
     const attemptMove = useCallback((fromRank, fromFile, toRank, toFile) => {
         setSuggestedMove(null);
 
-        try {
-            gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
-            setShowHint(false);
+        if (applyMove(fromRank, fromFile, toRank, toFile)) {
             promptEngine();
-        } catch (error) {
-            if (error instanceof MoveDisallowedError) {
-                switch (error.code) {
-                    case MoveDisallowedError.SELF_CHECK:
-                        // TODO:
-                        console.warn(error.message)
-                        break;
-                    case MoveDisallowedError.OUT_OF_TURN:
-                        // TODO:
-                        console.warn(error.message)
-                        break;
-                    case MoveDisallowedError.GENERIC:
-                    default:
-                        // TODO:
-                        console.error(error.message)
-                        break;
-                }
-            } else {
-                // Fully unexpected error :(
-                throw error;
-            }
         }
+    }, [applyMove, promptEngine]);
 
-        setSelectedSquare(null); // Deselect square we moved from
-        setMoveOptions(null); // Stop displaying move options after game state has changed
-        updateUI(); // Update UI to reflect the new board state after the move
-    }, [updateUI]);
+    useEffect(() => {
+        if (autoplayBlack && getTurn() === Piece.Colour.BLACK) {
+            promptEngine();
+        }
+    }, [autoplayBlack, getTurn, promptEngine]);
 
     // For when user is moving a piece
     const [draggedPiece, setDraggedPiece] = useState(null);
@@ -189,8 +218,6 @@ export function useChessGame() {
         setDragPosition(null);
     }, [attemptMove, moveOptions, selectedSquare]);
 
-    const getTurn = useCallback(() => gameRef.current.getTurn(), []);
-
     return {
         boardSnapshot,
         selectedSquare,
@@ -200,10 +227,14 @@ export function useChessGame() {
         dragPosition,
         winChance,
         showHint,
+        autoplayBlack,
+        // engineDepth,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
         requestHint,
-        getTurn
+        getTurn,
+        setAutoplayBlack,
+        // setEngineDepth
     };
 }

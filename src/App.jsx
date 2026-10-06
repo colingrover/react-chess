@@ -12,14 +12,18 @@ export default function App() {
         dragPosition,
         winChance,
         showHint,
+        autoplayBlack,
+        // engineDepth,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
         requestHint,
-        getTurn
+        getTurn,
+        setAutoplayBlack,
+        // setEngineDepth
     } = useChessGame();
 
-    const turn = getTurn()
+    const turn = getTurn();
 
     return (
         <div className="main-container">
@@ -40,11 +44,30 @@ export default function App() {
             <br/>
             < EvalBar percentage = {winChance} />
             <br/>
+            <label>
+                Computer plays black: 
+                <input type="checkbox" checked={autoplayBlack} onChange={(e) => setAutoplayBlack(e.target.checked)}>
+                </input>
+            </label>
+            {/* {autoplayBlack && <>
+                <br/>
+                <label>
+                    Engine depth: 
+                    <input 
+                        type="range" 
+                        value={engineDepth} 
+                        onChange={(e) => setEngineDepth(e.target.value)}
+                        min="1"
+                        max="18"
+                    />
+                    {engineDepth}
+                </label>
+            </>} */}
+            <br/>
             <button type="button" onClick={requestHint}>
                 Hint
             </button>
-            {showHint && showHint?.san && <p>Suggested move: {suggestedMove.san}</p>}
-            <br/>
+            {showHint && suggestedMove?.san && <p>Suggested move: {suggestedMove.san}</p>}
         </div>
     )
 }
