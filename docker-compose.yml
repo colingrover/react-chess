@@ -18,5 +18,5 @@ services:
           path: ./package.json
           target: /app/package.json
         - action: rebuild
-          path: ./vite.config.ts
-          target: /app/vite.config.ts
+          path: ./vite.config.js
+          target: /app/vite.config.js

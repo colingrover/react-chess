@@ -3,28 +3,7 @@ import ChessGame from '../logic/chessGame.js';
 import MoveDisallowedError from '../logic/moveDisallowedError.js';
 import Board from '../logic/board.js';
 import { Piece } from '../logic/piece.js';
-
-async function postChessApi(data = {}) {
-    const response = await fetch('https://chess-api.com/v1', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-        throw new Error(`Chess API request failed (${response.status}).`);
-    }
-
-    const responseJSON = await response.json();
-
-    if (responseJSON.type === "error") {
-        throw new Error(`Chess API request failed (${responseJSON.text}).`);
-    }
-
-    return responseJSON;
-}
+import { getChessAnalysis } from '../engine/chessApi.js';
 
 export function useChessGame() {
     // 1. Maintain a persistent instance across renders using useRef
@@ -90,7 +69,7 @@ export function useChessGame() {
         setSuggestedMove(null);
 
         try {
-            const result = await postChessApi({
+            const result = await getChessAnalysis({
                 fen: gameRef.current.getFEN(),
                 // depth: Math.min(18, Math.max(engineDepth, 1))
             });
