@@ -109,6 +109,16 @@ export function useChessGame() {
     // Prompt engine on first load
     useEffect(() => {promptEngine()}, []);
 
+    // If user turns on the setting to have the computer play the black pieces while its black's turn, 
+    // then make sure we immediately make the move
+    useEffect(() => {
+        if (autoplayBlack && getTurn() === Piece.Colour.BLACK && suggestedMove !== null) {
+            if (attemptMove(suggestedMove.from.rank, suggestedMove.from.file, suggestedMove.to.rank, suggestedMove.to.file)) {
+                promptEngine();
+            }
+        }
+    }, [autoplayBlack])
+
     /**
      * Helper to try and make a move, then get the new win % and suggested move from 
      * the engine if the move is successful.
