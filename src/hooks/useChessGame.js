@@ -45,6 +45,7 @@ export function useChessGame() {
                 switch (error.code) {
                     case MoveDisallowedError.SELF_CHECK:
                     case MoveDisallowedError.OUT_OF_TURN:
+                    case MoveDisallowedError.CHECKED_CASTLE:
                         console.warn(error.message);
                         break;
                     case MoveDisallowedError.GENERIC:
