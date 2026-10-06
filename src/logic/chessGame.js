@@ -260,7 +260,7 @@ export default class ChessGame {
                 allowedMoves[rank + direction][file] = true;
 
                 // Allow next square up if it's empty and pawn hasn't yet moved (also check valid rank juuuuust in case)
-                if (!this.#board.grid[rank][file].hasMoved && rank + (2*direction) > 0 
+                if (!this.#board.grid[rank][file].hasMoved && rank + (2*direction) >= 0 
                                                            && rank + (2*direction) < NUM_RANKS 
                                                            && this.#board.grid[rank + (2*direction)][file] === null) {
                     allowedMoves[rank + (2*direction)][file] = true;
@@ -271,7 +271,7 @@ export default class ChessGame {
             if (file + 1 < NUM_FILES && this.#board.grid[rank+direction][file+1] !== null && this.#board.grid[rank+direction][file+1].colour !== this.#board.grid[rank][file].colour) {
                 allowedMoves[rank+direction][file+1] = true;
             }
-            if (file - 1 > 0 && this.#board.grid[rank+direction][file-1] !== null && this.#board.grid[rank+direction][file-1].colour !== this.#board.grid[rank][file].colour) {
+            if (file - 1 >= 0 && this.#board.grid[rank+direction][file-1] !== null && this.#board.grid[rank+direction][file-1].colour !== this.#board.grid[rank][file].colour) {
                 allowedMoves[rank+direction][file-1] = true;
             }
         }
