@@ -1,6 +1,29 @@
 import { useState, useRef, useCallback } from 'react';
 import ChessGame from '../logic/chessGame.js';
 import MoveDisallowedError from '../logic/moveDisallowedError.js';
+import Board from '../logic/board.js';
+
+async function postChessApi(data = {}) {
+    const response = await fetch('https://chess-api.com/v1', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Chess API request failed (${response.status}).`);
+    }
+
+    const responseJSON = await response.json();
+
+    if (responseJSON.type === "error") {
+        throw new Error(`Chess API request failed (${responseJSON.text}).`);
+    }
+
+    return responseJSON;
+}
 
 export function useChessGame() {
     // 1. Maintain a persistent instance across renders using useRef
@@ -16,17 +39,54 @@ export function useChessGame() {
 
     const [selectedSquare, setSelectedSquare] = useState(null); // { rank, file }
     const [moveOptions, setMoveOptions] = useState(null); // 8x8 boolean grid
+    const [suggestedMove, setSuggestedMove] = useState(null);
+    const [winChance, setWinChance] = useState(50.0);
+    const [showHint, setShowHint] = useState(false);
 
     // Helper to trigger a React render whenever the underlying engine state changes
     const updateUI = useCallback(() => {
         setBoardSnapshot(gameRef.current.getBoardSnapshot());
     }, []);
 
+    // Prompt the chess engine for a hint & evaluate win %
+    const promptEngine = useCallback(async () => {
+        setSuggestedMove(null);
+
+        try {
+            const result = await postChessApi({ fen: gameRef.current.getFEN() });
+
+            if (!result || typeof result !== 'object') {
+                throw new Error('Chess API returned an invalid response.');
+            }
+
+            setSuggestedMove({
+                from: Board.getRankAndFileFromNotationName(result.from),
+                to: Board.getRankAndFileFromNotationName(result.to),
+                san: (typeof result.san === 'string' ? result.san : null),
+            });
+
+            setWinChance(result.winChance);
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                String(error);
+            }
+        }
+    }, []);
+
+    const requestHint = useCallback(() => {
+        setShowHint(true);
+    }, [])
+
     // Helper to try and make a move
     const attemptMove = useCallback((fromRank, fromFile, toRank, toFile) => {
+        setSuggestedMove(null);
 
         try {
             gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
+            setShowHint(false);
+            promptEngine();
         } catch (error) {
             if (error instanceof MoveDisallowedError) {
                 switch (error.code) {
@@ -135,11 +195,15 @@ export function useChessGame() {
         boardSnapshot,
         selectedSquare,
         moveOptions,
+        suggestedMove,
         draggedPiece,
         dragPosition,
+        winChance,
+        showHint,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
+        requestHint,
         getTurn
     };
 }

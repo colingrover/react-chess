@@ -1,17 +1,21 @@
-import { useState } from 'react'
 import Board from './components/Board.jsx';
 import {useChessGame} from './hooks/useChessGame.js';
+import EvalBar from './components/EvalBar.jsx';
 
 export default function App() {
     const {
         boardSnapshot,
         selectedSquare,
         moveOptions,
+        suggestedMove,
         draggedPiece,
         dragPosition,
+        winChance,
+        showHint,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
+        requestHint,
         getTurn
     } = useChessGame();
 
@@ -25,12 +29,22 @@ export default function App() {
                 board={boardSnapshot}
                 selectedSquare={selectedSquare}
                 highlighted={moveOptions}
+                suggestedMove={suggestedMove}
+                showHint={showHint}
                 draggedPiece={draggedPiece}
                 dragPosition={dragPosition}
                 handlePointerDown={handlePointerDown}
                 handlePointerMove={handlePointerMove}
                 handlePointerUp={handlePointerUp}
             />
+            <br/>
+            < EvalBar percentage = {winChance} />
+            <br/>
+            <button type="button" onClick={requestHint}>
+                Hint
+            </button>
+            {showHint && showHint?.san && <p>Suggested move: {suggestedMove.san}</p>}
+            <br/>
         </div>
     )
 }

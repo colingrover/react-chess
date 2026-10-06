@@ -5,6 +5,8 @@ export default function Tile({rank,
                               piece, 
                               selected, 
                               highlighted, 
+                              hintFrom,
+                              hintTo,
                               handlePointerDown,
                               handlePointerMove, 
                               handlePointerUp }) {
@@ -27,7 +29,9 @@ export default function Tile({rank,
                         ${piece !== null ? styles.piece : null}
                         ${piece !== null ? styles[`${piece.type}-${piece.colour}`] : null}
                         ${selected === true ? styles.selected : null}
-                        ${highlighted === true ? styles.highlighted : null}`}
+                        ${highlighted === true ? styles.highlighted : null}
+                        ${hintFrom ? styles.hintFrom : null}
+                        ${hintTo ? styles.hintTo : null}`}
             onPointerDown={pointerDownCaller}
             onPointerMove={handlePointerMove}
             onPointerUp={pointerUpCaller}

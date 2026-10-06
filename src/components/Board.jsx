@@ -5,6 +5,8 @@ import tileStyles from './Tile.module.css';
 export default function Board({board, 
                                selectedSquare, 
                                highlighted, 
+                               suggestedMove,
+                               showHint,
                                draggedPiece, 
                                dragPosition, 
                                handlePointerDown, 
@@ -31,6 +33,16 @@ export default function Board({board,
                                 }
                                 highlighted={
                                     highlighted === null ? false : highlighted[rankIndex][fileIndex]
+                                }
+                                hintFrom={
+                                    showHint &&
+                                    suggestedMove?.from.rank === rankIndex &&
+                                    suggestedMove?.from.file === fileIndex
+                                }
+                                hintTo={
+                                    showHint &&
+                                    suggestedMove?.to.rank === rankIndex &&
+                                    suggestedMove?.to.file === fileIndex
                                 }
                                 handlePointerDown={handlePointerDown}
                                 handlePointerMove={handlePointerMove}
