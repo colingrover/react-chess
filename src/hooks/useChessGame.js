@@ -23,9 +23,6 @@ export function useChessGame() {
     const [winChance, setWinChance] = useState(53.0);
     const [showHint, setShowHint] = useState(false);
     const [autoplayBlack, setAutoplayBlack] = useState(false);
-    // const [engineDepth, setEngineDepth] = useState(12);
-    const autoplayBlackRef = useRef(autoplayBlack);
-    autoplayBlackRef.current = autoplayBlack;
 
     // Helper to trigger a React render whenever the underlying engine state changes
     const updateUI = useCallback(() => {
@@ -34,7 +31,7 @@ export function useChessGame() {
 
     const getTurn = useCallback(() => gameRef.current.getTurn(), []);
 
-    const applyMove = useCallback((fromRank, fromFile, toRank, toFile) => {
+    const attemptMove = useCallback((fromRank, fromFile, toRank, toFile) => {
         let moveWasApplied = false;
 
         try {
@@ -69,10 +66,7 @@ export function useChessGame() {
         setSuggestedMove(null);
 
         try {
-            const result = await getChessAnalysis({
-                fen: gameRef.current.getFEN(),
-                // depth: Math.min(18, Math.max(engineDepth, 1))
-            });
+            const result = await getChessAnalysis(gameRef.current.getFEN());
 
             if (!result || typeof result !== 'object') {
                 throw new Error('Chess API returned an invalid response.');
@@ -89,8 +83,10 @@ export function useChessGame() {
 
             setWinChance(result.winChance);
 
-            if (autoplayBlackRef.current && getTurn() === Piece.Colour.BLACK) {
-                if (applyMove(from.rank, from.file, to.rank, to.file)) {
+            // If next turn is black's, and user wants the computer to play the
+            // black pieces, make that move
+            if (autoplayBlack && getTurn() === Piece.Colour.BLACK) {
+                if (attemptMove(from.rank, from.file, to.rank, to.file)) {
                     await promptEngine();
                 }
             }
@@ -101,27 +97,21 @@ export function useChessGame() {
                 String(error);
             }
         }
-    }, [applyMove, /* engineDepth, */ getTurn]);
+    }, [attemptMove, getTurn, autoplayBlack]);
 
     const requestHint = useCallback(() => {
         setShowHint(true);
-        promptEngine();
-    }, [promptEngine]);
+    }, []);
 
-    // Helper to try and make a move
-    const attemptMove = useCallback((fromRank, fromFile, toRank, toFile) => {
-        setSuggestedMove(null);
-
-        if (applyMove(fromRank, fromFile, toRank, toFile)) {
+    /**
+     * Helper to try and make a move, then get the new win % and suggested move from 
+     * the engine if the move is successful.
+     */
+    const attemptMoveAndPromptEngine = useCallback((fromRank, fromFile, toRank, toFile) => {
+        if (attemptMove(fromRank, fromFile, toRank, toFile)) {
             promptEngine();
         }
-    }, [applyMove, promptEngine]);
-
-    useEffect(() => {
-        if (autoplayBlack && getTurn() === Piece.Colour.BLACK) {
-            promptEngine();
-        }
-    }, [autoplayBlack, getTurn, promptEngine]);
+    }, [attemptMove, promptEngine]);
 
     // For when user is moving a piece
     const [draggedPiece, setDraggedPiece] = useState(null);
@@ -184,7 +174,7 @@ export function useChessGame() {
         if (isMoveOption) {
             // TODO: React somehow to when moves are refused that indicates why to the player
             // (e.g., not your turn, move would put you in check, etc.)
-            attemptMove(
+            attemptMoveAndPromptEngine(
                 selectedSquare.rank,
                 selectedSquare.file,
                 rank,
@@ -195,7 +185,7 @@ export function useChessGame() {
         // Release piece
         setDraggedPiece(null);
         setDragPosition(null);
-    }, [attemptMove, moveOptions, selectedSquare]);
+    }, [attemptMoveAndPromptEngine, moveOptions, selectedSquare]);
 
     return {
         boardSnapshot,
@@ -207,13 +197,11 @@ export function useChessGame() {
         winChance,
         showHint,
         autoplayBlack,
-        // engineDepth,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
         requestHint,
         getTurn,
         setAutoplayBlack,
-        // setEngineDepth
     };
 }

@@ -13,14 +13,12 @@ export default function App() {
         winChance,
         showHint,
         autoplayBlack,
-        // engineDepth,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
         requestHint,
         getTurn,
         setAutoplayBlack,
-        // setEngineDepth
     } = useChessGame();
 
     const turn = getTurn();
@@ -49,20 +47,6 @@ export default function App() {
                 <input type="checkbox" checked={autoplayBlack} onChange={(e) => setAutoplayBlack(e.target.checked)}>
                 </input>
             </label>
-            {/* {autoplayBlack && <>
-                <br/>
-                <label>
-                    Engine depth: 
-                    <input 
-                        type="range" 
-                        value={engineDepth} 
-                        onChange={(e) => setEngineDepth(e.target.value)}
-                        min="1"
-                        max="18"
-                    />
-                    {engineDepth}
-                </label>
-            </>} */}
             <br/>
             <button type="button" onClick={requestHint}>
                 Hint

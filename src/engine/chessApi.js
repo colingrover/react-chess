@@ -1,12 +1,12 @@
 const CHESS_API_URL = 'https://chess-api.com/v1';
 
-export async function getChessAnalysis(data = {}) {
+export async function getChessAnalysis(fen) {
     const response = await fetch(CHESS_API_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({fen}),
     });
 
     if (!response.ok) {
