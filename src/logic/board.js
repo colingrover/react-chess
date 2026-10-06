@@ -12,6 +12,22 @@ export default class Board {
         return `${String.fromCharCode("a".charCodeAt(0) + file)}${rank + 1}`
     }
 
+    /**
+     * E.g., "c1" → `{rank: 0, file: 2}`
+     * @param {string} square 
+     * @returns Rank/file from algebraic notation
+     */
+    static getRankAndFileFromNotationName(square) {
+        if (typeof square !== 'string' || !/^[a-h][1-8]$/.test(square)) {
+            throw new Error(`Invalid square: ${square}`);
+        }
+
+        return {
+            rank: Number(square[1]) - 1,
+            file: square.charCodeAt(0) - 'a'.charCodeAt(0)
+        };
+    }
+
     constructor() {
         this.grid = Array.from({ length: NUM_RANKS }, () => Array(NUM_FILES).fill(null));
         this.#init();
@@ -89,5 +105,43 @@ export default class Board {
         // console.log(`${this.grid[newRank][newFile].colour} ${this.grid[newRank][newFile].type} from ${Board.getSquareNotationName(oldRank, oldFile)} to ${Board.getSquareNotationName(newRank, newFile)}`)
     }
 
+    /**
+     * Get current board state in Forsyth-Edwards Notation (doesn't get 
+     * active colour, castling rights, possible en passant targets, halfmove 
+     * clock, or fullmove number)
+     * @returns {string}
+     */
+    getFEN() {
+        let ret = "";
+
+        for (let rank = NUM_RANKS-1; rank >= 0; rank--) {
+            if (rank < NUM_RANKS-1) {
+                ret += "/";
+            }
+
+            const rankContents = this.grid[rank];
+
+            let consecutiveBlanks = 0;
+
+            for (const piece of rankContents) {
+                if (piece === null) {
+                    consecutiveBlanks++;
+                } else {
+                    if (consecutiveBlanks > 0) {
+                        ret += consecutiveBlanks;
+                        consecutiveBlanks = 0;
+                    }
+
+                    ret += piece.getFEN();
+                }
+            }
+
+            if (consecutiveBlanks > 0) {
+                ret += consecutiveBlanks;
+            }
+        }
+
+        return ret;
+    }
 
 }

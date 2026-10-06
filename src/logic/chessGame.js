@@ -15,6 +15,8 @@ export default class ChessGame {
     #board = null;
     #turn = null;
     #kingLocation = {};
+    #numHalfmoves;
+    #numFullmoves;
 
     constructor() {
         this.#board = new Board();
@@ -39,6 +41,9 @@ export default class ChessGame {
 
             if (numKingsFound >= 2) {break;}
         }
+
+        this.#numHalfmoves = 0; // TODO: Add game-ending logic for this
+        this.#numFullmoves = 1;
     }
 
     /**
@@ -138,6 +143,13 @@ export default class ChessGame {
             );
         }
 
+        // If pawn move or capture, reset halfmove counter (else add to it)
+        if (this.#board.grid[oldRank][oldFile].type === Piece.Type.PAWN || this.#board.grid[newRank][newFile] !== null) {
+            this.#numHalfmoves = 0;
+        } else {
+            this.#numHalfmoves++;
+        }
+
         // Actually make the move
         this.#board.move(oldRank, oldFile, newRank, newFile);
 
@@ -147,12 +159,32 @@ export default class ChessGame {
             this.#kingLocation[this.#turn].file = newFile;
         }
 
+        // If black is making a move, increment fullmove counter
+        if (this.#turn === Piece.Colour.BLACK) {
+            this.#numFullmoves++;
+        }
+
         // Flip whose turn it is
         this.#changeTurn();
     }
 
     getTurn() {
         return this.#turn
+    }
+
+    getFEN() {
+        const activeColour = this.#turn === Piece.Colour.WHITE ? "w" : "b";
+
+        let castlingRights = (this.#canCastle(Piece.Colour.WHITE) ? "K" : "");
+        castlingRights += (this.#canCastle(Piece.Colour.WHITE, false) ? "Q" : "");
+        castlingRights += (this.#canCastle(Piece.Colour.BLACK) ? "k" : "");
+        castlingRights += (this.#canCastle(Piece.Colour.BLACK, false) ? "q" : "");
+        if (castlingRights === "") {
+            castlingRights = "-";
+        }
+
+        // TODO: Possible en passant targets
+        return `${this.#board.getFEN()} ${activeColour} ${castlingRights} - ${this.#numHalfmoves} ${this.#numFullmoves}`;
     }
 
     /**
@@ -355,5 +387,39 @@ export default class ChessGame {
         }
 
         // TODO: Check for checkmate/draw
+    }
+
+    /**
+     * Determine whether a given player is still allowed to castle to a given side
+     * @param {Piece.Colour} playerColour 
+     * @param {boolean} kingSide 
+     * @returns {boolean}
+     */
+    #canCastle(playerColour, kingSide=true) {
+        // First, make sure king hasn't moved
+        const king = this.#kingLocation[playerColour];
+        if (this.#board.grid[king.rank][king.file].hasMoved) {
+            return false;
+        }
+
+        // Get which rank the rook on our target side SHOULD be on
+        const backRank = (playerColour === Piece.Colour.WHITE ? 0 : 7);
+
+        // Depending which side we're checking for, point to right file
+        // that rook SHOULD be on
+        let rook = this.#board.grid[backRank][7];
+        if (!kingSide) {
+            rook = this.#board.grid[backRank][0];
+        }
+
+        if (rook !== null &&
+            rook.colour === playerColour &&
+            rook.type === Piece.Type.ROOK &&
+            rook.hasMoved === false)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

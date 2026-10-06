@@ -27,14 +27,49 @@ export class Piece {
     }
 
     /**
-     * Creates a new Piece instance with identical state.
-     * @returns {Piece}
+     * Gets the FEN character representative of this piece
+     * @returns {string}
      */
-    clone() {
-        return new Piece({
-            colour: this.colour,
-            type: this.type,
-            hasMoved: this.hasMoved
-        });
+    getFEN() {
+        let ret;
+
+        switch (this.type) {
+            case Piece.Type.ROOK:
+                ret = "r";
+                break;
+            case Piece.Type.KNIGHT:
+                ret = "n";
+                break;
+            case Piece.Type.BISHOP:
+                ret = "b";
+                break;
+            case Piece.Type.QUEEN:
+                ret = "q";
+                break;
+            case Piece.Type.KING:
+                ret = "k";
+                break;
+            case Piece.Type.PAWN:
+                ret = "p";
+                break;
+        }
+
+        if (this.colour === Piece.Colour.WHITE) {
+            ret = ret.toUpperCase();
+        }
+
+        return ret;
     }
+
+    // /**
+    //  * Creates a new Piece instance with identical state.
+    //  * @returns {Piece}
+    //  */
+    // clone() {
+    //     return new Piece({
+    //         colour: this.colour,
+    //         type: this.type,
+    //         hasMoved: this.hasMoved
+    //     });
+    // }
 }
