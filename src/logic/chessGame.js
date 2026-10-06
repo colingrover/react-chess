@@ -5,7 +5,6 @@ import MoveDisallowedError from "./moveDisallowedError.js";
 
 /* TODO:
  *  - En passant
- *  - Castling
  *  - Detect check
  *  - Force user to get out of check
  *  - Disallow moves that would put player in check
@@ -17,6 +16,7 @@ export default class ChessGame {
     #kingLocation = {};
     #numHalfmoves;
     #numFullmoves;
+    // #possibleEnPassantTarget = null;
 
     constructor() {
         this.#board = new Board();
@@ -99,6 +99,7 @@ export default class ChessGame {
                 break;
             case Piece.Type.KING:
                 this.#getOffsetMoves(rank, file, ret, KING_OFFSETS);
+                this.#getCastleMoves(rank, file, this.#board.grid[rank][file].colour, ret);
                 break;
             case Piece.Type.PAWN:
                 this.#getPawnMoves(rank, file, ret);
@@ -110,6 +111,13 @@ export default class ChessGame {
         return ret;
     }
 
+    /**
+     * Assumes move is one already generated & confirmed pseudo-legal by `getBasicMoves`
+     * @param {*} oldRank 
+     * @param {*} oldFile 
+     * @param {*} newRank 
+     * @param {*} newFile 
+     */
     attemptMove(oldRank, oldFile, newRank, newFile) {
         // Check input bounds
         if (oldRank < 0 || oldRank >= NUM_RANKS || oldFile < 0 || oldFile >= NUM_FILES) {
@@ -135,14 +143,6 @@ export default class ChessGame {
             );
         }
 
-        // Block the move if it would put the player in check (or leave them there if they are already in check)
-        if(this.#doesMovePutSelfInCheck(oldRank, oldFile, newRank, newFile)) {
-            throw new MoveDisallowedError(
-                MoveDisallowedError.SELF_CHECK,
-                `Move would leave ${this.#turn}'s king under attack`
-            );
-        }
-
         // If pawn move or capture, reset halfmove counter (else add to it)
         if (this.#board.grid[oldRank][oldFile].type === Piece.Type.PAWN || this.#board.grid[newRank][newFile] !== null) {
             this.#numHalfmoves = 0;
@@ -150,8 +150,39 @@ export default class ChessGame {
             this.#numHalfmoves++;
         }
 
+        // Check if move is a castle
+        const isCastling = (this.#board.grid[oldRank][oldFile].type === Piece.Type.KING &&
+            oldFile === 4 &&
+            (newFile === 2 || newFile === 6)
+        );
+
+        // Can't castle in check
+        if (isCastling && this.isPlayerInCheck(this.#turn)) {
+            throw new MoveDisallowedError(
+                MoveDisallowedError.CHECKED_CASTLE,
+                `Cannot castle while in check`
+            );
+        }
+
+        // Block the move if it would put the player in check (or leave them there if they are already in check)
+        if(this.#doesMovePutSelfInCheck(oldRank, oldFile, newRank, newFile, isCastling)) {
+            throw new MoveDisallowedError(
+                MoveDisallowedError.SELF_CHECK,
+                `Move would leave ${this.#turn}'s king under attack`
+            );
+        }
+
         // Actually make the move
         this.#board.move(oldRank, oldFile, newRank, newFile);
+
+        // Move rook too if castling
+        if (isCastling) {
+            if (newFile === 6) {
+                this.#board.move(oldRank, 7, newRank, 5);
+            } else if (newFile === 2) {
+                this.#board.move(oldRank, 0, newRank, 3);
+            }
+        }
 
         // If this move is with the king, update our saved king position
         if (this.#board.grid[newRank][newFile].type === Piece.Type.KING) {
@@ -188,6 +219,93 @@ export default class ChessGame {
     }
 
     /**
+     * Checks if player is in check
+     * @param {*} playerColour 
+     * @param {*} boardSnapshot 
+     * @param {*} kingPos 
+     * @returns {boolean}
+     */
+    isPlayerInCheck(playerColour, boardSnapshot=this.getBoardSnapshot(), kingPos = null) {
+        // Default to current board and the associated, saved king position
+        if (kingPos === null) {
+            kingPos = this.#kingLocation[playerColour];
+        }
+
+        // Check outward from our king position for opponent pieces possibly attacking it
+
+        // First, check along straight lines & diagonals
+        for (const [rankDir, fileDir] of [...ROOK_DIRECTIONS, ...BISHOP_DIRECTIONS]) {
+            let targetRank = kingPos.rank + rankDir;
+            let targetFile = kingPos.file + fileDir;
+            const isDiagonal = (rankDir !== 0) && (fileDir !== 0);
+
+            while (targetRank >= 0 && targetRank < NUM_RANKS && targetFile >= 0 && targetFile < NUM_FILES) {
+                const piece = boardSnapshot[targetRank][targetFile];
+                
+                if (piece !== null) {
+                    // If we encounter an opponent's piece along this direction
+                    if (piece.colour !== playerColour) {
+                        if (piece.type === Piece.Type.QUEEN) {
+                            return true;
+                        }
+
+                        if (piece.type === Piece.Type.BISHOP && isDiagonal) {
+                            return true;
+                        }
+
+                        if (piece.type === Piece.Type.ROOK && !isDiagonal) {
+                            return true;
+                        }
+                    }
+
+                    // If we encountered a piece that was not attacking our king, then the rest of this 
+                    // direction can be considered "blocked" and not worth checking
+                    break;
+                }
+
+                // Move on to next square along direction
+                targetRank += rankDir;
+                targetFile += fileDir;
+            }
+        }
+
+        // Then, check for knights
+        for (const [rankOffset, fileOffset] of KNIGHT_OFFSETS) {
+            const targetRank = kingPos.rank + rankOffset;
+            const targetFile = kingPos.file + fileOffset;
+
+            if (targetRank >= 0 && targetRank < NUM_RANKS && targetFile >= 0 && targetFile < NUM_FILES) {
+                const piece = boardSnapshot[targetRank][targetFile];
+
+                if (piece !== null && piece.colour !== playerColour && piece.type === Piece.Type.KNIGHT) {
+                    return true;
+                }
+            }
+        }
+
+        // Then, check for pawns
+        const pawnRank = kingPos.rank + (playerColour === Piece.Colour.WHITE ? 1 : -1);
+        if (pawnRank < NUM_RANKS && pawnRank >= 0) {
+            for (const pawnFile of [kingPos.file-1, kingPos.file+1]) {
+                if (pawnFile < 0 || pawnFile >= NUM_FILES) {continue;}
+                const piece = boardSnapshot[pawnRank][pawnFile];
+
+                if (piece !== null && piece.colour !== playerColour && piece.type === Piece.Type.PAWN) {
+                    return true;
+                }
+            }
+        }
+
+        // Finally, check for opponent's king
+        const opponentKingPos = {...this.#kingLocation[(playerColour === Piece.Colour.WHITE ? Piece.Colour.BLACK : Piece.Colour.WHITE)]}
+        if (Math.abs(kingPos.rank-opponentKingPos.rank) <= 1 && Math.abs(kingPos.file-opponentKingPos.file) <= 1) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
      * @brief Helper for getBasicMoves that handles pieces that slide
      * 
      * @param {number} rank 
@@ -207,7 +325,6 @@ export default class ChessGame {
                     allowedMoves[targetRank][targetFile] = true;
                 } else if (this.#board.grid[targetRank][targetFile].colour === this.#board.grid[rank][file].colour) {
                     // Stop if we encounter one of our own pieces
-                    // TODO: Make sure this doesn't interfere with castling
                     break;
                 } else {
                     // Set move to allowed, then stop if we encounter one of opponent's pieces
@@ -277,120 +394,26 @@ export default class ChessGame {
         }
     }
 
-    /**
-     * Checks if potential move would make they player either put or keep themselves in check
-     * @param {number} oldRank 
-     * @param {number} oldFile 
-     * @param {number} newRank 
-     * @param {number} newFile 
-     * 
-     * @returns {boolean}
-     */
-    #doesMovePutSelfInCheck(oldRank, oldFile, newRank, newFile) {
-        // Get copy of board
-        const tempBoard = this.getBoardSnapshot();
-
-        // Make move on our copy of the board
-        tempBoard[newRank][newFile] = tempBoard[oldRank][oldFile];
-        tempBoard[oldRank][oldFile] = null;
-
-        // Find where our king is
-        let kingPos = {...this.#kingLocation[this.#turn]};
-        if (tempBoard[newRank][newFile].type === Piece.Type.KING) {
-            kingPos.rank = newRank;
-            kingPos.file = newFile;
+    #getCastleMoves(rank, file, playerColour, allowedMoves) {
+        // First, check king side
+        if (this.#canCastle(playerColour, true) && 
+            this.#board.grid[rank][file+1] === null &&
+            this.#board.grid[rank][file+2] === null) {
+            allowedMoves[rank][file+2] = true;
         }
 
-        // Check outward from our king position for opponent pieces possibly attacking it
-
-        // First, check along straight lines & diagonals
-        for (const [rankDir, fileDir] of [...ROOK_DIRECTIONS, ...BISHOP_DIRECTIONS]) {
-            let targetRank = kingPos.rank + rankDir;
-            let targetFile = kingPos.file + fileDir;
-            const isDiagonal = (rankDir !== 0) && (fileDir !== 0);
-
-            while (targetRank >= 0 && targetRank < NUM_RANKS && targetFile >= 0 && targetFile < NUM_FILES) {
-                const piece = tempBoard[targetRank][targetFile];
-                
-                if (piece !== null) {
-                    // If we encounter an opponent's piece along this direction
-                    if (piece.colour !== this.#turn) {
-                        if (piece.type === Piece.Type.QUEEN) {
-                            return true;
-                        }
-
-                        if (piece.type === Piece.Type.BISHOP && isDiagonal) {
-                            return true;
-                        }
-
-                        if (piece.type === Piece.Type.ROOK && !isDiagonal) {
-                            return true;
-                        }
-                    }
-
-                    // If we encountered a piece that was not attacking our king, then the rest of this 
-                    // direction can be considered "blocked" and not worth checking
-                    break;
-                }
-
-                // Move on to next square along direction
-                targetRank += rankDir;
-                targetFile += fileDir;
-            }
+        // Then, check queen side
+        if (this.#canCastle(playerColour, false) && 
+            this.#board.grid[rank][file-1] === null &&
+            this.#board.grid[rank][file-2] === null &&
+            this.#board.grid[rank][file-3] === null) {
+            allowedMoves[rank][file-2] = true;
         }
-
-        // Then, check for knights
-        for (const [rankOffset, fileOffset] of KNIGHT_OFFSETS) {
-            const targetRank = kingPos.rank + rankOffset;
-            const targetFile = kingPos.file + fileOffset;
-
-            if (targetRank >= 0 && targetRank < NUM_RANKS && targetFile >= 0 && targetFile < NUM_FILES) {
-                const piece = tempBoard[targetRank][targetFile];
-
-                if (piece !== null && piece.colour !== this.#turn && piece.type === Piece.Type.KNIGHT) {
-                    return true;
-                }
-            }
-        }
-
-        // Then, check for pawns
-        const pawnRank = kingPos.rank + (this.#turn === Piece.Colour.WHITE ? 1 : -1);
-        if (pawnRank < NUM_RANKS && pawnRank >= 0) {
-            for (const pawnFile of [kingPos.file-1, kingPos.file+1]) {
-                if (pawnFile < 0 || pawnFile >= NUM_FILES) {continue;}
-                const piece = tempBoard[pawnRank][pawnFile];
-
-                if (piece !== null && piece.colour !== this.#turn && piece.type === Piece.Type.PAWN) {
-                    return true;
-                }
-            }
-        }
-
-        // Finally, check for opponent's king
-        const opponentKingPos = {...this.#kingLocation[(this.#turn === Piece.Colour.WHITE ? Piece.Colour.BLACK : Piece.Colour.WHITE)]}
-        if (Math.abs(kingPos.rank-opponentKingPos.rank) <= 1 && Math.abs(kingPos.file-opponentKingPos.file) <= 1) {
-            return true;
-        }
-        
-        return false;
     }
 
     /**
-     * Changes the turn of the player, and initiates the new turn by checking for any game-ending conditions
-     */
-    #changeTurn() {
-        // Change whose turn it is
-        if (this.#turn === Piece.Colour.WHITE) {
-            this.#turn = Piece.Colour.BLACK;
-        } else {
-            this.#turn = Piece.Colour.WHITE;
-        }
-
-        // TODO: Check for checkmate/draw
-    }
-
-    /**
-     * Determine whether a given player is still allowed to castle to a given side
+     * Determine whether a given player is still allowed to castle to a given side (not whether they're 
+     * currently able to)
      * @param {Piece.Colour} playerColour 
      * @param {boolean} kingSide 
      * @returns {boolean}
@@ -421,5 +444,58 @@ export default class ChessGame {
         }
 
         return false;
+    }
+
+    /**
+     * Checks if potential move would make the player either put or keep themselves in check
+     * @param {number} oldRank 
+     * @param {number} oldFile 
+     * @param {number} newRank 
+     * @param {number} newFile 
+     * @param {boolean} isCastling
+     * 
+     * @returns {boolean}
+     */
+    #doesMovePutSelfInCheck(oldRank, oldFile, newRank, newFile, isCastling) {
+        // Get copy of board
+        const tempBoard = this.getBoardSnapshot();
+
+        // Make move on our copy of the board
+        tempBoard[newRank][newFile] = tempBoard[oldRank][oldFile];
+        tempBoard[oldRank][oldFile] = null;
+
+        // Move rook too if castling
+        if (isCastling) {
+            if (newFile === 6) {
+                tempBoard[newRank][5] = tempBoard[oldRank][7];
+                tempBoard[oldRank][7] = null;
+            } else if (newFile === 2) {
+                tempBoard[newRank][3] = tempBoard[oldRank][0];
+                tempBoard[oldRank][0] = null;
+            }
+        }
+
+        // Find where our king is
+        let kingPos = {...this.#kingLocation[this.#turn]};
+        if (tempBoard[newRank][newFile].type === Piece.Type.KING) {
+            kingPos.rank = newRank;
+            kingPos.file = newFile;
+        }
+
+        return(this.isPlayerInCheck(this.#turn, tempBoard, kingPos));
+    }
+
+    /**
+     * Changes the turn of the player, and initiates the new turn by checking for any game-ending conditions
+     */
+    #changeTurn() {
+        // Change whose turn it is
+        if (this.#turn === Piece.Colour.WHITE) {
+            this.#turn = Piece.Colour.BLACK;
+        } else {
+            this.#turn = Piece.Colour.WHITE;
+        }
+
+        // TODO: Check for checkmate/draw
     }
 }

@@ -13,6 +13,7 @@ export default function App() {
         winChance,
         showHint,
         autoplayBlack,
+        check,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
@@ -26,6 +27,7 @@ export default function App() {
     return (
         <div className="main-container">
             <h1>Work in Progress Still...</h1>
+            {check ? <span>Check!</span> : <br/>}
             <p>{turn[0].toUpperCase() + turn.slice(1)}'s turn</p>
             <Board 
                 board={boardSnapshot}

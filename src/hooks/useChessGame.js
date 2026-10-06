@@ -23,6 +23,7 @@ export function useChessGame() {
     const [winChance, setWinChance] = useState(53.0);
     const [showHint, setShowHint] = useState(false);
     const [autoplayBlack, setAutoplayBlack] = useState(false);
+    const [check, setCheck] = useState(false);
 
     // Helper to trigger a React render whenever the underlying engine state changes
     const updateUI = useCallback(() => {
@@ -36,6 +37,7 @@ export function useChessGame() {
 
         try {
             gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
+            setCheck(gameRef.current.isPlayerInCheck(getTurn()));
             moveWasApplied = true;
             setShowHint(false);
         } catch (error) {
@@ -59,7 +61,7 @@ export function useChessGame() {
         setMoveOptions(null);
         updateUI();
         return moveWasApplied;
-    }, [updateUI]);
+    }, [updateUI, getTurn]);
 
     // Prompt the chess engine for a hint & evaluate win %
     const promptEngine = useCallback(async function promptEngine() {
@@ -102,6 +104,9 @@ export function useChessGame() {
     const requestHint = useCallback(() => {
         setShowHint(true);
     }, []);
+
+    // Prompt engine on first load
+    useEffect(() => {promptEngine()}, []);
 
     /**
      * Helper to try and make a move, then get the new win % and suggested move from 
@@ -197,6 +202,7 @@ export function useChessGame() {
         winChance,
         showHint,
         autoplayBlack,
+        check,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
