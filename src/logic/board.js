@@ -91,18 +91,24 @@ export default class Board {
      * @param {number} newFile 
      */
     move(oldRank, oldFile, newRank, newFile) {
-        // if (oldRank < 0 || oldRank >= NUM_RANKS || oldFile < 0 || oldFile >= NUM_FILES) {
-        //     throw new Error(`Old rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
-        // }
-
-        // if (newRank < 0 || newRank >= NUM_RANKS || newFile < 0 || newFile >= NUM_FILES) {
-        //     throw new Error(`New rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
-        // }
-
         this.grid[newRank][newFile] = this.grid[oldRank][oldFile];
         this.grid[newRank][newFile].hasMoved = true;
         this.grid[oldRank][oldFile] = null;
-        // console.log(`${this.grid[newRank][newFile].colour} ${this.grid[newRank][newFile].type} from ${Board.getSquareNotationName(oldRank, oldFile)} to ${Board.getSquareNotationName(newRank, newFile)}`)
+    }
+
+    /**
+     * 
+     * @param {number} rank 
+     * @param {number} file 
+     * @param {*} type 
+     */
+    promote(rank, file, type) {
+        const pawn = this.grid[rank][file];
+        if (pawn === null || pawn.type !== Piece.Type.PAWN) {
+            throw new Error("Only a pawn can be promoted.");
+        }
+
+        this.grid[rank][file].type = type;
     }
 
     /**

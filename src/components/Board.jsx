@@ -7,6 +7,8 @@ export default function Board({board,
                                highlighted, 
                                suggestedMove,
                                showHint,
+                               pendingPromotion,
+                               handlePromotionChoice,
                                draggedPiece, 
                                dragPosition, 
                                handlePointerDown, 
@@ -51,6 +53,30 @@ export default function Board({board,
                         );
                     })
             ))}
+
+            {pendingPromotion && (
+                <div
+                    className={`${styles.promotionPicker} ${
+                        pendingPromotion.colour === 'black'
+                            ? styles.promotionPickerBlack
+                            : styles.promotionPickerWhite
+                    }`}
+                    style={{ left: `${pendingPromotion.to.file * 12.5}%` }}
+                    role="group"
+                    aria-label="Choose a promotion piece"
+                >
+                    {['queen', 'rook', 'bishop', 'knight'].map((type) => (
+                        <button
+                            key={type}
+                            className={`${styles.promotionOption} ${tileStyles.piece} ${tileStyles[`${type}-${pendingPromotion.colour}`]}`}
+                            type="button"
+                            aria-label={`Promote to ${type}`}
+                            title={`Promote to ${type}`}
+                            onClick={() => handlePromotionChoice(type)}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Dragged piece */}
             {draggedPiece && dragPosition && (

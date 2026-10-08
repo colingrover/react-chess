@@ -118,7 +118,7 @@ export default class ChessGame {
      * @param {*} newRank 
      * @param {*} newFile 
      */
-    attemptMove(oldRank, oldFile, newRank, newFile) {
+    attemptMove(oldRank, oldFile, newRank, newFile, promotionType = null) {
         // Check input bounds
         if (oldRank < 0 || oldRank >= NUM_RANKS || oldFile < 0 || oldFile >= NUM_FILES) {
             throw new Error(`Old rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
@@ -127,8 +127,10 @@ export default class ChessGame {
         if (newRank < 0 || newRank >= NUM_RANKS || newFile < 0 || newFile >= NUM_FILES) {
             throw new Error(`New rank or file outside of expected range. Received rank ${rank} and file ${file}. Rank should be in range [0, ${NUM_RANKS}) and file should be in range [0, ${NUM_FILES}).`);
         }
+        
+        const movingPiece = this.#board.grid[oldRank][oldFile];
 
-        if (this.#board.grid[oldRank][oldFile] === null) {
+        if (movingPiece === null) {
             throw new MoveDisallowedError(
                 MoveDisallowedError.GENERIC,
                 `No piece found on square ${Board.getSquareNotationName(oldRank, oldFile)} to be moved`
@@ -136,22 +138,22 @@ export default class ChessGame {
         }
 
         // Don't allow move if not that player's turn
-        if (this.#board.grid[oldRank][oldFile].colour !== this.#turn) {
+        if (movingPiece.colour !== this.#turn) {
             throw new MoveDisallowedError(
                 MoveDisallowedError.OUT_OF_TURN,
-                `Cannot move a ${this.#board.grid[oldRank][oldFile].colour} piece on ${this.#turn}'s move`
+                `Cannot move a ${movingPiece.colour} piece on ${this.#turn}'s move`
             );
         }
 
         // If pawn move or capture, reset halfmove counter (else add to it)
-        if (this.#board.grid[oldRank][oldFile].type === Piece.Type.PAWN || this.#board.grid[newRank][newFile] !== null) {
+        if (movingPiece.type === Piece.Type.PAWN || this.#board.grid[newRank][newFile] !== null) {
             this.#numHalfmoves = 0;
         } else {
             this.#numHalfmoves++;
         }
 
         // Check if move is a castle
-        const isCastling = (this.#board.grid[oldRank][oldFile].type === Piece.Type.KING &&
+        const isCastling = (movingPiece.type === Piece.Type.KING &&
             oldFile === 4 &&
             (newFile === 2 || newFile === 6)
         );
@@ -161,6 +163,22 @@ export default class ChessGame {
             throw new MoveDisallowedError(
                 MoveDisallowedError.CHECKED_CASTLE,
                 `Cannot castle while in check`
+            );
+        }
+
+        // Check if move is a promotion
+        const isPromotion = ((movingPiece.type === Piece.Type.PAWN) && (newRank === (movingPiece.colour === Piece.Colour.WHITE ? NUM_RANKS - 1 : 0)));
+        const validPromotionTypes = [
+            Piece.Type.QUEEN,
+            Piece.Type.ROOK,
+            Piece.Type.BISHOP,
+            Piece.Type.KNIGHT,
+        ];
+
+        if (isPromotion && promotionType !== null && !validPromotionTypes.includes(promotionType)) {
+            throw new MoveDisallowedError(
+                MoveDisallowedError.GENERIC,
+                `Invalid promotion piece: ${promotionType}`
             );
         }
 
@@ -174,6 +192,15 @@ export default class ChessGame {
 
         // Actually make the move
         this.#board.move(oldRank, oldFile, newRank, newFile);
+
+        // Make promotion move (if applicable)
+        if (isPromotion) {
+            this.#board.promote(
+                newRank,
+                newFile,
+                promotionType ?? Piece.Type.QUEEN
+            );
+        }
 
         // Move rook too if castling
         if (isCastling) {
@@ -371,7 +398,7 @@ export default class ChessGame {
         const direction = (this.#board.grid[rank][file].colour === Piece.Colour.WHITE) ? 1 : -1;
 
         // If we're not in last rank
-        if (rank + direction > 0 && rank + direction < NUM_RANKS) {
+        if (rank + direction >= 0 && rank + direction < NUM_RANKS) {
             // Allow square directly in front of pawn if it's empty
             if (this.#board.grid[rank + direction][file] === null) {
                 allowedMoves[rank + direction][file] = true;

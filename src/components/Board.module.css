@@ -5,6 +5,7 @@
 }
 
 .chessboard {
+    position: relative;
     width: var(--boardWidth);
     aspect-ratio: 1;
     overflow: visible;
@@ -12,6 +13,37 @@
     grid-template-rows: repeat(var(--numRanks), 1fr);
     grid-template-columns: repeat(var(--numFiles), 1fr);
     touch-action: none;
+}
+
+.promotionPicker {
+    position: absolute;
+    z-index: 20;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    width: 12.5%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 35%);
+}
+
+.promotionPickerBlack {
+    top: auto;
+    bottom: 0;
+    flex-direction: column-reverse;
+}
+
+.promotionOption {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 0;
+    border-radius: 0;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.promotionOption:hover,
+.promotionOption:focus-visible {
+    background-color: #d9e8cf;
 }
 
 .draggedPiece {
