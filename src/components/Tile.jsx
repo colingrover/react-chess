@@ -12,11 +12,23 @@ export default function Tile({rank,
                               handlePointerUp }) {
     const pointerDownCaller = (e) => {
         e.preventDefault();
+
+        // Ignore right click
+        if (e.button === 2) {
+            return;
+        }
+
         handlePointerDown(rank, file, e);
     };
 
     const pointerUpCaller = (e) => {
         e.preventDefault();
+
+        // Ignore right click
+        if (e.button === 2) {
+            return;
+        }
+
         handlePointerUp(rank, file);
     };
 
