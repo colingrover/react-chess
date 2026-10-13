@@ -3,14 +3,7 @@ import ChessGame from '../logic/chessGame.js';
 import MoveDisallowedError from '../logic/moveDisallowedError.js';
 import Board from '../logic/board.js';
 import { Piece } from '../logic/piece.js';
-import { getChessAnalysis } from '../engine/chessApi.js';
-
-const ENGINE_PROMOTION_TYPES = new Map([
-    ['q', Piece.Type.QUEEN],
-    ['r', Piece.Type.ROOK],
-    ['b', Piece.Type.BISHOP],
-    ['n', Piece.Type.KNIGHT]
-]);
+import { getChessAnalysis, ENGINE_PROMOTION_TYPES } from '../engine/chessApi.js';
 
 export function useChessGame() {
     // 1. Maintain a persistent instance across renders using useRef

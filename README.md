@@ -19,3 +19,5 @@ docker compose up dev --watch
 - En-passant
 - Checkmate
 - Play as black
+- Move log
+- Undo move
