@@ -1,3 +1,5 @@
+import { Piece } from "../logic/piece.js";
+
 const CHESS_API_URL = 'https://chess-api.com/v1';
 
 export const ENGINE_PROMOTION_TYPES = Object.freeze(new Map([

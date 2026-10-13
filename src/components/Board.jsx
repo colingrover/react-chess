@@ -1,6 +1,8 @@
 import Tile from './Tile.jsx';
 import styles from './Board.module.css';
 import tileStyles from './Tile.module.css';
+import { Piece } from '../logic/piece.js';
+import { NUM_FILES } from '../constants.js';
 
 export default function Board({board, 
                                selectedSquare, 
@@ -54,18 +56,19 @@ export default function Board({board,
                     })
             ))}
 
+            {/* Promotion menu */}
             {pendingPromotion && (
                 <div
                     className={`${styles.promotionPicker} ${
-                        pendingPromotion.colour === 'black'
+                        pendingPromotion.colour === Piece.Colour.BLACK
                             ? styles.promotionPickerBlack
-                            : styles.promotionPickerWhite
+                            : null
                     }`}
-                    style={{ left: `${pendingPromotion.to.file * 12.5}%` }}
+                    style={{ left: `${pendingPromotion.to.file * (100.0/NUM_FILES)}%` }}
                     role="group"
                     aria-label="Choose a promotion piece"
                 >
-                    {['queen', 'rook', 'bishop', 'knight'].map((type) => (
+                    {[Piece.Type.QUEEN, Piece.Type.ROOK, Piece.Type.BISHOP, Piece.Type.KNIGHT].map((type) => (
                         <button
                             key={type}
                             className={`${styles.promotionOption} ${tileStyles.piece} ${tileStyles[`${type}-${pendingPromotion.colour}`]}`}
