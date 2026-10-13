@@ -3,7 +3,7 @@ import ChessGame from '../logic/chessGame.js';
 import MoveDisallowedError from '../logic/moveDisallowedError.js';
 import Board from '../logic/board.js';
 import { Piece } from '../logic/piece.js';
-import { getChessAnalysis } from '../engine/chessApi.js';
+import { getChessAnalysis, ENGINE_PROMOTION_TYPES } from '../engine/chessApi.js';
 
 export function useChessGame() {
     // 1. Maintain a persistent instance across renders using useRef
@@ -24,6 +24,7 @@ export function useChessGame() {
     const [showHint, setShowHint] = useState(false);
     const [autoplayBlack, setAutoplayBlack] = useState(false);
     const [check, setCheck] = useState(false);
+    const [pendingPromotion, setPendingPromotion] = useState(null);
 
     // Helper to trigger a React render whenever the underlying engine state changes
     const updateUI = useCallback(() => {
@@ -32,11 +33,11 @@ export function useChessGame() {
 
     const getTurn = useCallback(() => gameRef.current.getTurn(), []);
 
-    const attemptMove = useCallback((fromRank, fromFile, toRank, toFile) => {
+    const attemptMove = useCallback((fromRank, fromFile, toRank, toFile, promotionType = null) => {
         let moveWasApplied = false;
 
         try {
-            gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile);
+            gameRef.current.attemptMove(fromRank, fromFile, toRank, toFile, promotionType);
             setCheck(gameRef.current.isPlayerInCheck(getTurn()));
             moveWasApplied = true;
             setShowHint(false);
@@ -77,10 +78,14 @@ export function useChessGame() {
 
             const from = Board.getRankAndFileFromNotationName(result.from);
             const to = Board.getRankAndFileFromNotationName(result.to);
+            const promotionType = (typeof result.promotion === 'string'
+                ? ENGINE_PROMOTION_TYPES.get(result.promotion.toLowerCase()) ?? null
+                : null);
 
             setSuggestedMove({
                 from,
                 to,
+                promotionType,
                 san: (typeof result.san === 'string' ? result.san : null),
             });
 
@@ -89,7 +94,7 @@ export function useChessGame() {
             // If next turn is black's, and user wants the computer to play the
             // black pieces, make that move
             if (autoplayBlack && getTurn() === Piece.Colour.BLACK) {
-                if (attemptMove(from.rank, from.file, to.rank, to.file)) {
+                if (attemptMove(from.rank, from.file, to.rank, to.file, promotionType)) {
                     await promptEngine();
                 }
             }
@@ -110,10 +115,16 @@ export function useChessGame() {
     useEffect(() => {promptEngine()}, []);
 
     // If user turns on the setting to have the computer play the black pieces while its black's turn, 
-    // then make sure we immediately make the move
+    // then make sure we immediately make the move (and re-prompt the engine)
     useEffect(() => {
         if (autoplayBlack && getTurn() === Piece.Colour.BLACK && suggestedMove !== null) {
-            if (attemptMove(suggestedMove.from.rank, suggestedMove.from.file, suggestedMove.to.rank, suggestedMove.to.file)) {
+            if (attemptMove(
+                suggestedMove.from.rank,
+                suggestedMove.from.file,
+                suggestedMove.to.rank,
+                suggestedMove.to.file,
+                suggestedMove.promotionType
+            )) {
                 promptEngine();
             }
         }
@@ -123,18 +134,38 @@ export function useChessGame() {
      * Helper to try and make a move, then get the new win % and suggested move from 
      * the engine if the move is successful.
      */
-    const attemptMoveAndPromptEngine = useCallback((fromRank, fromFile, toRank, toFile) => {
-        if (attemptMove(fromRank, fromFile, toRank, toFile)) {
+    const attemptMoveAndPromptEngine = useCallback((fromRank, fromFile, toRank, toFile, promotionType = null) => {
+        if (attemptMove(fromRank, fromFile, toRank, toFile, promotionType)) {
             promptEngine();
         }
     }, [attemptMove, promptEngine]);
+
+    /**
+     * Lets user set the piece type that they'd like to promote their pawn to once 
+     * a promotion has already been initiated
+     */
+    const applyUsersPromotionChoice = useCallback((promotionType) => {
+        // Do nothing if no promotion has been initiated
+        if (pendingPromotion === null) {
+            return;
+        }
+
+        const { from, to } = pendingPromotion;
+        setPendingPromotion(null); // Promotion is no longer pending user's choice
+        attemptMoveAndPromptEngine(from.rank, from.file, to.rank, to.file, promotionType);
+    }, [attemptMoveAndPromptEngine, pendingPromotion]);
 
     // For when user is moving a piece
     const [draggedPiece, setDraggedPiece] = useState(null);
     const [dragPosition, setDragPosition] = useState(null);
 
-    // Used for when user clicks on a square (ideally with a piece on it)
+    // Used for when user clicks on a square (ideally with a piece on it) to move piece
     const handlePointerDown = useCallback((rank, file, event) => {
+        // If we're in the promotion menu, don't click on the pieces behind it
+        if (pendingPromotion !== null) {
+            return;
+        }
+
         // If the player has already selected a piece, and is now clicking on one of its
         // allowed moves, then we don't have to bother with this stuff as it would be
         // unnecessary/redundant 
@@ -165,7 +196,7 @@ export function useChessGame() {
             x: event.clientX,
             y: event.clientY,
         });
-    }, [boardSnapshot, moveOptions, selectedSquare]);
+    }, [boardSnapshot, moveOptions, pendingPromotion, selectedSquare]);
 
     // Track piece being moved to the mouse
     const handlePointerMove = useCallback((event) => {
@@ -188,20 +219,36 @@ export function useChessGame() {
         const isMoveOption = moveOptions?.[rank]?.[file] === true;
 
         if (isMoveOption) {
-            // TODO: React somehow to when moves are refused that indicates why to the player
-            // (e.g., not your turn, move would put you in check, etc.)
-            attemptMoveAndPromptEngine(
-                selectedSquare.rank,
-                selectedSquare.file,
-                rank,
-                file,
-            );
+            const movingPiece = boardSnapshot[selectedSquare.rank][selectedSquare.file];
+            const isPromotion = (movingPiece?.type === Piece.Type.PAWN &&
+                rank === (movingPiece.colour === Piece.Colour.WHITE ? 7 : 0));
+
+            if (isPromotion) {
+                // If this move triggers a promotion, we are now pending the user's promotion choice,
+                // so we'll set our state accordingly
+                setPendingPromotion({
+                    from: selectedSquare,
+                    to: { rank, file },
+                    colour: movingPiece.colour,
+                });
+            } else {
+                // If this move doesn't trigger a promotion, we can go ahead and attempt to make it
+
+                // TODO: React somehow to when moves are refused that indicates why to the player
+                // (e.g., not your turn, move would put you in check, etc.)
+                attemptMoveAndPromptEngine(
+                    selectedSquare.rank,
+                    selectedSquare.file,
+                    rank,
+                    file,
+                );
+            }
         }
 
         // Release piece
         setDraggedPiece(null);
         setDragPosition(null);
-    }, [attemptMoveAndPromptEngine, moveOptions, selectedSquare]);
+    }, [attemptMoveAndPromptEngine, boardSnapshot, moveOptions, selectedSquare]);
 
     return {
         boardSnapshot,
@@ -214,9 +261,11 @@ export function useChessGame() {
         showHint,
         autoplayBlack,
         check,
+        pendingPromotion,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
+        applyUsersPromotionChoice,
         requestHint,
         getTurn,
         setAutoplayBlack,

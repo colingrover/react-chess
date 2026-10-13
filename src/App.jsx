@@ -12,11 +12,13 @@ export default function App() {
         dragPosition,
         winChance,
         showHint,
+        pendingPromotion,
         autoplayBlack,
         check,
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
+        applyUsersPromotionChoice,
         requestHint,
         getTurn,
         setAutoplayBlack,
@@ -35,6 +37,8 @@ export default function App() {
                 highlighted={moveOptions}
                 suggestedMove={suggestedMove}
                 showHint={showHint}
+                pendingPromotion={pendingPromotion}
+                applyUsersPromotionChoice={applyUsersPromotionChoice}
                 draggedPiece={draggedPiece}
                 dragPosition={dragPosition}
                 handlePointerDown={handlePointerDown}

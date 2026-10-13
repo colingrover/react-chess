@@ -1,12 +1,16 @@
 import Tile from './Tile.jsx';
 import styles from './Board.module.css';
 import tileStyles from './Tile.module.css';
+import { Piece } from '../logic/piece.js';
+import { NUM_FILES } from '../constants.js';
 
 export default function Board({board, 
                                selectedSquare, 
                                highlighted, 
                                suggestedMove,
                                showHint,
+                               pendingPromotion,
+                               applyUsersPromotionChoice,
                                draggedPiece, 
                                dragPosition, 
                                handlePointerDown, 
@@ -51,6 +55,31 @@ export default function Board({board,
                         );
                     })
             ))}
+
+            {/* Promotion menu */}
+            {pendingPromotion && (
+                <div
+                    className={`${styles.promotionPicker} ${
+                        pendingPromotion.colour === Piece.Colour.BLACK
+                            ? styles.promotionPickerBlack
+                            : null
+                    }`}
+                    style={{ left: `${pendingPromotion.to.file * (100.0/NUM_FILES)}%` }}
+                    role="group"
+                    aria-label="Choose a promotion piece"
+                >
+                    {[Piece.Type.QUEEN, Piece.Type.ROOK, Piece.Type.BISHOP, Piece.Type.KNIGHT].map((type) => (
+                        <button
+                            key={type}
+                            className={`${styles.promotionOption} ${tileStyles.piece} ${tileStyles[`${type}-${pendingPromotion.colour}`]}`}
+                            type="button"
+                            aria-label={`Promote to ${type}`}
+                            title={`Promote to ${type}`}
+                            onClick={() => applyUsersPromotionChoice(type)}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Dragged piece */}
             {draggedPiece && dragPosition && (
