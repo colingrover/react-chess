@@ -78,9 +78,9 @@ export function useChessGame() {
 
             const from = Board.getRankAndFileFromNotationName(result.from);
             const to = Board.getRankAndFileFromNotationName(result.to);
-            const promotionType = typeof result.promotion === 'string'
+            const promotionType = (typeof result.promotion === 'string'
                 ? ENGINE_PROMOTION_TYPES.get(result.promotion.toLowerCase()) ?? null
-                : null;
+                : null);
 
             setSuggestedMove({
                 from,
@@ -115,7 +115,7 @@ export function useChessGame() {
     useEffect(() => {promptEngine()}, []);
 
     // If user turns on the setting to have the computer play the black pieces while its black's turn, 
-    // then make sure we immediately make the move
+    // then make sure we immediately make the move (and re-prompt the engine)
     useEffect(() => {
         if (autoplayBlack && getTurn() === Piece.Colour.BLACK && suggestedMove !== null) {
             if (attemptMove(
@@ -140,13 +140,18 @@ export function useChessGame() {
         }
     }, [attemptMove, promptEngine]);
 
-    const handlePromotionChoice = useCallback((promotionType) => {
+    /**
+     * Lets user set the piece type that they'd like to promote their pawn to once 
+     * a promotion has already been initiated
+     */
+    const applyUsersPromotionChoice = useCallback((promotionType) => {
+        // Do nothing if no promotion has been initiated
         if (pendingPromotion === null) {
             return;
         }
 
         const { from, to } = pendingPromotion;
-        setPendingPromotion(null);
+        setPendingPromotion(null); // Promotion is no longer pending user's choice
         attemptMoveAndPromptEngine(from.rank, from.file, to.rank, to.file, promotionType);
     }, [attemptMoveAndPromptEngine, pendingPromotion]);
 
@@ -154,8 +159,9 @@ export function useChessGame() {
     const [draggedPiece, setDraggedPiece] = useState(null);
     const [dragPosition, setDragPosition] = useState(null);
 
-    // Used for when user clicks on a square (ideally with a piece on it)
+    // Used for when user clicks on a square (ideally with a piece on it) to move piece
     const handlePointerDown = useCallback((rank, file, event) => {
+        // If we're in the promotion menu, don't click on the pieces behind it
         if (pendingPromotion !== null) {
             return;
         }
@@ -214,16 +220,20 @@ export function useChessGame() {
 
         if (isMoveOption) {
             const movingPiece = boardSnapshot[selectedSquare.rank][selectedSquare.file];
-            const isPromotion = movingPiece?.type === Piece.Type.PAWN &&
-                rank === (movingPiece.colour === Piece.Colour.WHITE ? 7 : 0);
+            const isPromotion = (movingPiece?.type === Piece.Type.PAWN &&
+                rank === (movingPiece.colour === Piece.Colour.WHITE ? 7 : 0));
 
             if (isPromotion) {
+                // If this move triggers a promotion, we are now pending the user's promotion choice,
+                // so we'll set our state accordingly
                 setPendingPromotion({
                     from: selectedSquare,
                     to: { rank, file },
                     colour: movingPiece.colour,
                 });
             } else {
+                // If this move doesn't trigger a promotion, we can go ahead and attempt to make it
+
                 // TODO: React somehow to when moves are refused that indicates why to the player
                 // (e.g., not your turn, move would put you in check, etc.)
                 attemptMoveAndPromptEngine(
@@ -255,7 +265,7 @@ export function useChessGame() {
         handlePointerDown,
         handlePointerMove,
         handlePointerUp,
-        handlePromotionChoice,
+        applyUsersPromotionChoice,
         requestHint,
         getTurn,
         setAutoplayBlack,

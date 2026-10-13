@@ -175,6 +175,7 @@ export default class ChessGame {
             Piece.Type.KNIGHT,
         ];
 
+        //Block move if invalid promotion
         if (isPromotion && promotionType !== null && !validPromotionTypes.includes(promotionType)) {
             throw new MoveDisallowedError(
                 MoveDisallowedError.GENERIC,
@@ -193,12 +194,12 @@ export default class ChessGame {
         // Actually make the move
         this.#board.move(oldRank, oldFile, newRank, newFile);
 
-        // Make promotion move (if applicable)
+        // Apply promotion (if applicable)
         if (isPromotion) {
             this.#board.promote(
                 newRank,
                 newFile,
-                promotionType ?? Piece.Type.QUEEN
+                promotionType
             );
         }
 

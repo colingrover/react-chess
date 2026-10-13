@@ -8,7 +8,7 @@ export default function Board({board,
                                suggestedMove,
                                showHint,
                                pendingPromotion,
-                               handlePromotionChoice,
+                               applyUsersPromotionChoice,
                                draggedPiece, 
                                dragPosition, 
                                handlePointerDown, 
@@ -72,7 +72,7 @@ export default function Board({board,
                             type="button"
                             aria-label={`Promote to ${type}`}
                             title={`Promote to ${type}`}
-                            onClick={() => handlePromotionChoice(type)}
+                            onClick={() => applyUsersPromotionChoice(type)}
                         />
                     ))}
                 </div>

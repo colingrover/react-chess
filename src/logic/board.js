@@ -85,10 +85,10 @@ export default class Board {
     /**
      * Move piece across board
      * 
-     * @param {number} oldRank 
-     * @param {number} oldFile 
-     * @param {number} newRank 
-     * @param {number} newFile 
+     * @param {number} oldRank In range [0, `NUM_RANKS`)
+     * @param {number} oldFile In range [0, `NUM_FILES`)
+     * @param {number} newRank In range [0, `NUM_RANKS`)
+     * @param {number} newFile In range [0, `NUM_FILES`)
      */
     move(oldRank, oldFile, newRank, newFile) {
         this.grid[newRank][newFile] = this.grid[oldRank][oldFile];
@@ -98,8 +98,8 @@ export default class Board {
 
     /**
      * 
-     * @param {number} rank 
-     * @param {number} file 
+     * @param {number} rank In range [0, `NUM_RANKS`)
+     * @param {number} file In range [0, `NUM_FILES`)
      * @param {*} type 
      */
     promote(rank, file, type) {
