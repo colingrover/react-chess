@@ -14,10 +14,3 @@ docker compose build dev
 ```
 docker compose up dev --watch
 ```
-
-## Major TODOs
-- En-passant
-- Checkmate
-- Play as black
-- Move log
-- Undo move
